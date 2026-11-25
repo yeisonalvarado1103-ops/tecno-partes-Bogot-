@@ -14,8 +14,11 @@ def pausar():
 
 
 def pedir_entero(mensaje, minimo=1):
+
     while True:
+
         try:
+
             numero = int(input(mensaje).strip())
 
             if numero < minimo:
@@ -25,12 +28,16 @@ def pedir_entero(mensaje, minimo=1):
             return numero
 
         except ValueError:
+
             print("Debes escribir un numero entero.")
 
 
 def pedir_precio():
+
     while True:
+
         try:
+
             precio = Decimal(
                 input("Precio del producto: ").strip()
             )
@@ -42,7 +49,35 @@ def pedir_precio():
             return precio
 
         except InvalidOperation:
+
             print("Debes escribir un precio valido.")
+
+
+def pedir_rol():
+
+    print("\n1. Administrador")
+    print("2. Empleado")
+
+    opcion = input("Selecciona el rol: ").strip()
+
+    if opcion == "1":
+        return "administrador"
+
+    if opcion == "2":
+        return "empleado"
+
+    raise ValueError("Rol incorrecto.")
+
+
+def pedir_contrasena():
+
+    contrasena = getpass("Nueva contrasena: ")
+    confirmar = getpass("Confirmar contrasena: ")
+
+    if contrasena != confirmar:
+        raise ValueError("Las contrasenas no coinciden.")
+
+    return contrasena
 
 
 def mostrar_productos(productos):
@@ -55,6 +90,7 @@ def mostrar_productos(productos):
         print("No hay productos registrados.")
 
     for producto in productos:
+
         print(f"ID: {producto[0]}")
         print(f"Nombre: {producto[1]}")
         print(f"Cantidad: {producto[2]}")
@@ -83,32 +119,35 @@ def iniciar_sesion(usuarios):
         usuario = input("Usuario: ").strip()
         contrasena = getpass("Contrasena: ")
 
-        if len(contrasena.encode("utf-8")) <= 72:
-            resultado = usuarios.iniciar_sesion(
-                usuario, contrasena
-            )
-        else:
-            resultado = None
+        resultado = usuarios.iniciar_sesion(
+            usuario, contrasena
+        )
 
         if resultado:
+
             print(f"\nBienvenido, {resultado[1]}")
             print(f"Rol: {resultado[3]}")
+
             return resultado
 
-        restantes = 2 - intento
-
         print("\nUsuario o contrasena incorrectos.")
-        print(f"Intentos restantes: {restantes}")
+        print(f"Intentos restantes: {2 - intento}")
 
     print("\nLimite de intentos alcanzado.")
+
     return None
 
 
 def mostrar_usuarios(usuarios):
 
-    print("\n========== USUARIOS ==========")
+    print("\n" + "=" * 45)
+    print("          USUARIOS REGISTRADOS")
+    print("=" * 45)
 
     registros = usuarios.listar_usuarios()
+
+    if not registros:
+        print("No hay usuarios registrados.")
 
     for registro in registros:
 
@@ -119,23 +158,138 @@ def mostrar_usuarios(usuarios):
         print(f"Usuario: {registro[2]}")
         print(f"Rol: {registro[3]}")
         print(f"Estado: {estado}")
-        print("-" * 40)
+        print("-" * 45)
+
+
+def actualizar_datos(usuarios, sesion):
+
+    print("\n=== ACTUALIZAR DATOS DEL USUARIO ===")
+
+    mostrar_usuarios(usuarios)
+
+    id_usuario = pedir_entero("ID del usuario: ")
+
+    registro = usuarios.buscar_usuario(id_usuario)
+
+    if registro is None:
+        raise ValueError("Usuario no encontrado.")
+
+    print("\nDatos actuales:")
+    print(f"Nombre: {registro[1]}")
+    print(f"Usuario: {registro[2]}")
+    print(f"Rol: {registro[3]}")
+
+    print("\nPresiona ENTER para conservar un dato.")
+
+    nombre = input("Nuevo nombre completo: ").strip()
+
+    if not nombre:
+        nombre = registro[1]
+
+    usuario = input("Nuevo nombre de usuario: ").strip()
+
+    if not usuario:
+        usuario = registro[2]
+
+    print("\n1. Administrador")
+    print("2. Empleado")
+    print("ENTER. Conservar rol actual")
+
+    opcion = input("Nuevo rol: ").strip()
+
+    if opcion == "1":
+        rol = "administrador"
+
+    elif opcion == "2":
+        rol = "empleado"
+
+    elif opcion == "":
+        rol = registro[3]
+
+    else:
+        raise ValueError("Rol incorrecto.")
+
+    confirmar = input(
+        "Confirmar actualizacion (s/n): "
+    ).strip().lower()
+
+    if confirmar != "s":
+
+        print("Actualizacion cancelada.")
+        return
+
+    usuarios.actualizar_usuario(
+        id_usuario,
+        nombre,
+        usuario,
+        rol,
+        sesion[0]
+    )
+
+    print("\nUsuario actualizado correctamente.")
+    print(f"ID: {id_usuario}")
+    print(f"Nombre: {nombre}")
+    print(f"Usuario: {usuario.lower()}")
+    print(f"Rol: {rol}")
+
+
+def cambiar_clave_usuario(usuarios):
+
+    print("\n=== CAMBIAR CONTRASENA ===")
+
+    mostrar_usuarios(usuarios)
+
+    id_usuario = pedir_entero("ID del usuario: ")
+
+    registro = usuarios.buscar_usuario(id_usuario)
+
+    if registro is None:
+        raise ValueError("Usuario no encontrado.")
+
+    print(f"Usuario seleccionado: {registro[2]}")
+
+    contrasena = pedir_contrasena()
+
+    confirmar = input(
+        "Confirmar cambio de contrasena (s/n): "
+    ).strip().lower()
+
+    if confirmar != "s":
+
+        print("Operacion cancelada.")
+        return
+
+    usuarios.cambiar_contrasena(
+        id_usuario,
+        contrasena
+    )
+
+    print("\nContrasena actualizada correctamente.")
 
 
 def administrar_usuarios(usuarios, sesion):
 
-    if sesion[3] != "administrador":
-        print("Acceso denegado.")
-        return
-
     while True:
+
+        cuenta = usuarios.buscar_usuario(sesion[0])
+
+        if cuenta is None or not cuenta[4]:
+            print("La cuenta no esta activa.")
+            return
+
+        if cuenta[3] != "administrador":
+            print("Acceso denegado.")
+            return
 
         print("\n======= ADMINISTRACION DE USUARIOS =======")
         print("1. Crear usuario")
         print("2. Listar usuarios")
         print("3. Activar usuario")
         print("4. Desactivar usuario")
-        print("5. Volver al menu principal")
+        print("5. Actualizar datos del usuario")
+        print("6. Cambiar contrasena")
+        print("7. Volver al menu principal")
+        print("==========================================")
 
         opcion = input("Selecciona una opcion: ").strip()
 
@@ -143,30 +297,17 @@ def administrar_usuarios(usuarios, sesion):
 
             if opcion == "1":
 
+                print("\n=== CREAR USUARIO ===")
+
                 nombre = input("Nombre completo: ").strip()
-                usuario = input("Nombre de usuario: ").strip()
 
-                print("\n1. Administrador")
-                print("2. Empleado")
+                usuario = input(
+                    "Nombre de usuario: "
+                ).strip()
 
-                seleccion = input("Selecciona el rol: ").strip()
+                rol = pedir_rol()
 
-                if seleccion == "1":
-                    rol = "administrador"
-
-                elif seleccion == "2":
-                    rol = "empleado"
-
-                else:
-                    raise ValueError("Rol incorrecto.")
-
-                contrasena = getpass("Nueva contrasena: ")
-                confirmar = getpass("Confirmar contrasena: ")
-
-                if contrasena != confirmar:
-                    raise ValueError(
-                        "Las contrasenas no coinciden."
-                    )
+                contrasena = pedir_contrasena()
 
                 id_usuario = usuarios.crear_usuario(
                     nombre,
@@ -193,8 +334,11 @@ def administrar_usuarios(usuarios, sesion):
                 )
 
                 if usuarios.cambiar_estado(id_usuario, True):
+
                     print("Usuario activado correctamente.")
+
                 else:
+
                     print("Usuario no encontrado.")
 
             elif opcion == "4":
@@ -206,6 +350,7 @@ def administrar_usuarios(usuarios, sesion):
                 )
 
                 if id_usuario == sesion[0]:
+
                     raise ValueError(
                         "No puedes desactivar tu propia cuenta."
                     )
@@ -217,20 +362,36 @@ def administrar_usuarios(usuarios, sesion):
                 if confirmar == "s":
 
                     if usuarios.cambiar_estado(id_usuario, False):
+
                         print("Usuario desactivado correctamente.")
+
                     else:
+
                         print("Usuario no encontrado.")
 
                 else:
+
                     print("Operacion cancelada.")
 
             elif opcion == "5":
+
+                actualizar_datos(usuarios, sesion)
+
+            elif opcion == "6":
+
+                cambiar_clave_usuario(usuarios)
+
+            elif opcion == "7":
 
                 break
 
             else:
 
                 print("Opcion incorrecta.")
+
+        except psycopg.errors.UniqueViolation:
+
+            print("\nEl nombre de usuario ya existe.")
 
         except (ValueError, psycopg.Error) as error:
 
@@ -241,9 +402,18 @@ def administrar_usuarios(usuarios, sesion):
 
 def menu_principal(inventario, usuarios, sesion):
 
-    administrador = sesion[3] == "administrador"
-
     while True:
+
+        cuenta = usuarios.buscar_usuario(sesion[0])
+
+        if cuenta is None or not cuenta[4]:
+
+            print("\nLa cuenta no esta activa.")
+            return True
+
+        sesion = cuenta[:4]
+
+        administrador = sesion[3] == "administrador"
 
         print("\n" + "=" * 50)
         print("          TECNO PARTES BOGOTA")
@@ -275,6 +445,15 @@ def menu_principal(inventario, usuarios, sesion):
 
         try:
 
+            cuenta = usuarios.buscar_usuario(sesion[0])
+
+            if cuenta is None or not cuenta[4]:
+
+                print("La cuenta no esta activa.")
+                return True
+
+            administrador = cuenta[3] == "administrador"
+
             if opcion in ("6", "7", "8") and not administrador:
 
                 print("Acceso denegado.")
@@ -289,16 +468,24 @@ def menu_principal(inventario, usuarios, sesion):
 
                 print("\n=== REGISTRAR PRODUCTO ===")
 
-                nombre = input("Nombre del producto: ").strip()
+                nombre = input(
+                    "Nombre del producto: "
+                ).strip()
 
                 if not nombre:
-                    raise ValueError("El nombre no puede estar vacio.")
+
+                    raise ValueError(
+                        "El nombre no puede estar vacio."
+                    )
 
                 cantidad = pedir_entero("Cantidad: ")
+
                 precio = pedir_precio()
 
                 id_producto = inventario.agregar(
-                    nombre, cantidad, precio
+                    nombre,
+                    cantidad,
+                    precio
                 )
 
                 print("\nProducto registrado correctamente.")
@@ -311,9 +498,12 @@ def menu_principal(inventario, usuarios, sesion):
 
                 print("\n=== BUSCAR PRODUCTO ===")
 
-                nombre = input("Nombre del producto: ").strip()
+                nombre = input(
+                    "Nombre del producto: "
+                ).strip()
 
                 if not nombre:
+
                     raise ValueError("Escribe un nombre.")
 
                 mostrar_productos(
@@ -326,11 +516,17 @@ def menu_principal(inventario, usuarios, sesion):
 
                 mostrar_inventario(inventario)
 
-                id_producto = pedir_entero("ID del producto: ")
-                cantidad = pedir_entero("Cantidad a ingresar: ")
+                id_producto = pedir_entero(
+                    "ID del producto: "
+                )
+
+                cantidad = pedir_entero(
+                    "Cantidad a ingresar: "
+                )
 
                 total = inventario.ingresar_unidades(
-                    id_producto, cantidad
+                    id_producto,
+                    cantidad
                 )
 
                 print("Unidades ingresadas correctamente.")
@@ -342,11 +538,17 @@ def menu_principal(inventario, usuarios, sesion):
 
                 mostrar_inventario(inventario)
 
-                id_producto = pedir_entero("ID del producto: ")
-                cantidad = pedir_entero("Cantidad a retirar: ")
+                id_producto = pedir_entero(
+                    "ID del producto: "
+                )
+
+                cantidad = pedir_entero(
+                    "Cantidad a retirar: "
+                )
 
                 restante = inventario.retirar(
-                    id_producto, cantidad
+                    id_producto,
+                    cantidad
                 )
 
                 print("Retiro realizado correctamente.")
@@ -358,14 +560,18 @@ def menu_principal(inventario, usuarios, sesion):
 
                 mostrar_inventario(inventario)
 
-                id_producto = pedir_entero("ID del producto: ")
+                id_producto = pedir_entero(
+                    "ID del producto: "
+                )
 
                 cantidad = pedir_entero(
-                    "Nueva cantidad: ", minimo=0
+                    "Nueva cantidad: ",
+                    minimo=0
                 )
 
                 inventario.actualizar(
-                    id_producto, cantidad
+                    id_producto,
+                    cantidad
                 )
 
                 print("Cantidad actualizada correctamente.")
@@ -377,7 +583,9 @@ def menu_principal(inventario, usuarios, sesion):
 
                 mostrar_inventario(inventario)
 
-                id_producto = pedir_entero("ID del producto: ")
+                id_producto = pedir_entero(
+                    "ID del producto: "
+                )
 
                 confirmar = input(
                     "Deseas eliminar el producto? (s/n): "
@@ -386,6 +594,7 @@ def menu_principal(inventario, usuarios, sesion):
                 if confirmar == "s":
 
                     inventario.eliminar(id_producto)
+
                     print("Producto eliminado correctamente.")
 
                 else:
@@ -399,12 +608,14 @@ def menu_principal(inventario, usuarios, sesion):
             elif opcion == "9":
 
                 print("\nSesion cerrada correctamente.")
+
                 return True
 
             elif opcion == "0":
 
                 print("\nGracias por utilizar Tecno Partes Bogota.")
                 print("Hasta pronto.")
+
                 return False
 
             else:
@@ -425,6 +636,7 @@ def iniciar_sistema():
         print("\nConexion exitosa a PostgreSQL")
 
         inventario = Inventario(conexion)
+
         usuarios = Usuarios(conexion)
 
         while True:
